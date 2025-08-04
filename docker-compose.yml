@@ -1,0 +1,15 @@
+version: "3.8"
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./src:/app/src            # код приложения
+      - ./src/models/meganet_model_best.pth:/app/src/models/meganet_model_best.pth
+    ports:
+      - "8080:8080"
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: uvicorn src.server.api:app --host 0.0.0.0 --port 8080 --reload

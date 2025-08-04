@@ -1,0 +1,7 @@
+torch
+fastapi
+uvicorn[standard]
+numpy
+pydantic
+pytest
+prometheus-fastapi-instrumentator  # для метрик

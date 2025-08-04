@@ -1,0 +1,38 @@
+# Виртуальное окружение
+fa_venv/
+venv/
+.env/
+
+# Скомпилированные Python-файлы
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Модели и большие бинарные файлы
+*.pth
+*.pt
+*.h5
+*.onnx
+
+# Логи
+*.log
+
+# Настройки IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Кэш pip
+pip-wheel-metadata/
+*.egg-info/
+dist/
+build/
+
+# Docker
+*.pid
+*.sock
