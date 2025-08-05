@@ -31,7 +31,6 @@ class ResidualBlock(nn.Module):
     def forward(self, x):
         return self.layer_norm(x + self.layers(x))
 
-
 # =============================================================================
 # Основной класс модели MegaNet
 # =============================================================================
@@ -39,9 +38,10 @@ class MegaNet(nn.Module):
     def __init__(self, input_size, num_classes, params):
         super(MegaNet, self).__init__()
         shared_embed_dim = params['shared_embed_dim']
-        latent_dim        = params['latent_dim']
-        num_heads         = params['num_heads']
-        dropout           = params['dropout']
+        latent_dim = params['latent_dim']
+        num_heads = params['num_heads']
+        dropout = params['dropout']
+        self.num_classes = num_classes
 
         # 1) Общий входной эмбеддинг
         self.shared_input_embed = nn.Sequential(
@@ -58,10 +58,10 @@ class MegaNet(nn.Module):
         )
 
         # 3) VAE ветка
-        self.vae_encoder_mu     = nn.Linear(shared_embed_dim, latent_dim)
+        self.vae_encoder_mu = nn.Linear(shared_embed_dim, latent_dim)
         self.vae_encoder_logvar = nn.Linear(shared_embed_dim, latent_dim)
-        self.vae_decoder        = nn.Linear(latent_dim, input_size)
-        self.vae_transformer    = nn.TransformerEncoderLayer(
+        self.vae_decoder = nn.Linear(latent_dim, input_size)
+        self.vae_transformer = nn.TransformerEncoderLayer(
             d_model=latent_dim,
             nhead=max(1, num_heads // 2),
             batch_first=True
@@ -70,12 +70,12 @@ class MegaNet(nn.Module):
         # 4) Квантовая ветка
         num_states = 4
         self.quan_superposition = nn.Linear(shared_embed_dim, shared_embed_dim * num_states)
-        self.quan_entanglement  = nn.TransformerEncoderLayer(
+        self.quan_entanglement = nn.TransformerEncoderLayer(
             d_model=shared_embed_dim,
             nhead=max(1, num_heads // 2),
             batch_first=True
         )
-        self.quan_measurement   = nn.Linear(shared_embed_dim * num_states, shared_embed_dim)
+        self.quan_measurement = nn.Linear(shared_embed_dim * num_states, shared_embed_dim)
 
         # 5) Эволюционные ветки
         self.evo_path1 = MultiHeadSelfAttention(shared_embed_dim, max(1, num_heads // 2))
@@ -96,7 +96,10 @@ class MegaNet(nn.Module):
             nn.ReLU(),
             nn.Dropout(0.5)
         )
-        self.classifier = nn.Linear(fusion_input_dim // 2, num_classes)
+        
+        # Для бинарной классификации используем 1 выходной нейрон
+        output_dim = 1 if num_classes == 2 else num_classes
+        self.classifier = nn.Linear(fusion_input_dim // 2, output_dim)
 
         # Уровни шума (только для train)
         self.noise_levels = [0.05, 0.15]
@@ -113,30 +116,41 @@ class MegaNet(nn.Module):
         else:
             x = self.shared_input_embed(x_original)
 
+        # Transformer path
         out1 = self.trans_path(x.unsqueeze(1)).squeeze(1)
+
+        # VAE path
         mu = self.vae_encoder_mu(x)
         logvar = self.vae_encoder_logvar(x)
         z = self.reparameterize(mu, logvar)
         recon_x = self.vae_decoder(z)
         out2 = self.vae_transformer(z.unsqueeze(1)).squeeze(1)
 
+        # Quantum path
         b, _ = x.shape
         quan_states = self.quan_superposition(x).view(b, 4, -1)
         quan_entangled = self.quan_entanglement(quan_states)
         out3 = self.quan_measurement(quan_entangled.view(b, -1))
 
+        # Evolution path
         g = F.softmax(self.evo_gates, dim=0)
         evo_out1 = self.evo_path1(x.unsqueeze(1)).squeeze(1)
         evo_out2 = self.evo_path2(x)
         out4 = g[0] * evo_out1 + g[1] * evo_out2
 
+        # Diffusion path
         out5 = self.diffu_path(x)
 
+        # Fusion
         concatenated = torch.cat([out1, out2, out3, out4, out5], dim=1)
         fused = self.fusion_layer(concatenated)
         logits = self.classifier(fused)
+        
+        # Возвращаем правильную размерность для бинарной классификации
+        if self.num_classes == 2:
+            logits = logits.squeeze(-1)
+        
         return logits, recon_x, mu, logvar
-
 
 # =============================================================================
 # Обёртка для детерминированного инференса

@@ -6,8 +6,11 @@ services:
       context: .
       dockerfile: Dockerfile
     volumes:
-      - ./src:/app/src            # код приложения
+      - ./src:/app/src # код приложения
       - ./src/models/meganet_model_best.pth:/app/src/models/meganet_model_best.pth
+      - ./src/models/MegaNet_model_classes_1_3_vs_4_5.pth:/app/src/models/MegaNet_model_classes_1_3_vs_4_5.pth
+      - ./src/models/MegaNet_model_classes_1_2_3.pth:/app/src/models/MegaNet_model_classes_1_2_3.pth
+      - ./src/models/MegaNet_model_classes_4_5.pth:/app/src/models/MegaNet_model_classes_4_5.pth
     ports:
       - "8080:8080"
     environment:
