@@ -177,3 +177,7 @@ async def predict_ensemble(inp: Inp):
     predicted_class = ensemble_model.predict(x_raw)
     
     return EnsemblePrediction(predicted_class=int(predicted_class))
+
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy"}

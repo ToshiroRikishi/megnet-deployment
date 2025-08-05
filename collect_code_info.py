@@ -5,7 +5,8 @@ files_with_plus = [
     "docker-compose.yml",
     "Dockerfile",
     "src/models/megnet.py",
-    "src/server/api.py"
+    "src/server/api.py",
+    "requirements.txt"
 ]
 
 # Путь к выходному файлу
